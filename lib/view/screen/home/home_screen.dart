@@ -1,13 +1,18 @@
 // ignore_for_file: avoid_unnecessary_containers
 
+import 'package:cloud_firestore/cloud_firestore.dart';
+import 'package:finance_app/utills/app_constants.dart';
 import 'package:finance_app/utills/images.dart';
 import 'package:finance_app/utills/routes.dart';
+import 'package:finance_app/utills/stringUtils.dart';
 import 'package:finance_app/utills/style.dart';
 import 'package:finance_app/view/screen/transaction/transaction_screen.dart';
 import 'package:finance_app/view/screen/wallets/wallets_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:persistent_bottom_nav_bar/persistent_tab_view.dart';
 import 'package:responsive_sizer/responsive_sizer.dart';
+import 'package:finance_app/getIt.dart' as di;
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({Key? key}) : super(key: key);
@@ -17,45 +22,54 @@ class HomeScreen extends StatefulWidget {
 }
 
 class _HomeScreenState extends State<HomeScreen> {
-  List<Map<String, dynamic>> balance = [
-    {
-      'icon': Images.logo_food_drinks,
-      'title': 'Food & Drink',
-      'balance': '600,00'
-    },
-    {'icon': Images.logo_shopping, 'title': 'Shopping', 'balance': '600,00'},
-    {
-      'icon': Images.logo_electricity,
-      'title': 'Electricity',
-      'balance': '600,00'
-    },
-  ];
-  List<Map<String, dynamic>> transaction = [
-    {
-      'icon': Images.logo_food_drinks,
-      'title': 'Food & Drink',
-      'date': 'Sunday, 21 April 2024',
-      'balance': '571,00'
-    },
-    {
-      'icon': Images.logo_shopping,
-      'title': 'Shopping',
-      'date': 'Sunday, 21 April 2024',
-      'balance': '221,00'
-    },
-    {
-      'icon': Images.logo_electricity,
-      'title': 'Electricity',
-      'date': 'Sunday, 21 April 2024',
-      'balance': '50,00'
-    },
-    {
-      'icon': Images.logo_transportation,
-      'title': 'Transportation',
-      'date': 'Sunday, 21 April 2024',
-      'balance': '8,00'
-    },
-  ];
+  SharedPreferences _sharedPrefrences = di.getIt();
+  int _expanse = 0;
+  int _income = 0;
+
+  @override
+  void initState() {
+    super.initState();
+    initExpanse();
+    initIncome();
+  }
+
+  Future<void> initExpanse() async {
+    int expanse = 0;
+    final transaction = await FirebaseFirestore.instance
+        .collection('user')
+        .doc(_sharedPrefrences.getString(AppConstants.UID))
+        .collection('transaction')
+        .where('type', isEqualTo: 'expanse')
+        .get()
+        .then((value) => value);
+
+    for (var item in transaction.docs) {
+      final data = item.data();
+      expanse = expanse + int.parse(data['balance'].toString());
+    }
+    setState(() {
+      _expanse = expanse;
+    });
+  }
+
+  Future<void> initIncome() async {
+    int income = 0;
+    final transaction = await FirebaseFirestore.instance
+        .collection('user')
+        .doc(_sharedPrefrences.getString(AppConstants.UID))
+        .collection('transaction')
+        .where('type', isEqualTo: 'income')
+        .get()
+        .then((value) => value);
+
+    for (var item in transaction.docs) {
+      final data = item.data();
+      income = income + int.parse(data['balance'].toString());
+    }
+    setState(() {
+      _income = income;
+    });
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -90,14 +104,16 @@ class _HomeScreenState extends State<HomeScreen> {
                           ),
                           children: [
                             TextSpan(
-                              text: 'Enjoy Your Life Day\n',
+                              text:
+                                  '${_sharedPrefrences.getString(AppConstants.BIO)}\n',
                               style: interSemiBold.copyWith(
                                 fontSize: 12.sp,
                                 color: const Color(0xffD0AFAF),
                               ),
                             ),
-                            const TextSpan(
-                              text: 'Hi Dion 龙鉴',
+                            TextSpan(
+                              text:
+                                  '${_sharedPrefrences.getString(AppConstants.NICKNAME)}',
                             ),
                           ],
                         ),
@@ -122,6 +138,7 @@ class _HomeScreenState extends State<HomeScreen> {
                 ),
               ),
               SizedBox(height: 15.px),
+
               // total balance
               Container(
                 padding: EdgeInsets.symmetric(horizontal: 20.px),
@@ -302,7 +319,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     SizedBox(width: 10.px),
                                     Text(
-                                      '1000,00',
+                                      _expanse.toString(), //'1000,00',
                                       style: interSemiBold.copyWith(
                                         fontSize: 16.sp,
                                         color: Colors.white,
@@ -339,7 +356,7 @@ class _HomeScreenState extends State<HomeScreen> {
                                     ),
                                     SizedBox(width: 10.px),
                                     Text(
-                                      '600,00',
+                                      _income.toString(),
                                       style: interSemiBold.copyWith(
                                         fontSize: 16.sp,
                                         color: Colors.white,
@@ -382,54 +399,84 @@ class _HomeScreenState extends State<HomeScreen> {
                             ),
                           ),
                           // SizedBox(height: 10.px),
-                          ListView.separated(
-                            itemCount: balance.length,
-                            physics: const BouncingScrollPhysics(),
-                            shrinkWrap: true,
-                            padding: EdgeInsets.only(top: 10.px),
-                            separatorBuilder: (context, index) =>
-                                SizedBox(height: 15.px),
-                            itemBuilder: (context, index) {
-                              return Container(
-                                child: Row(
-                                  children: [
-                                    Image.asset(balance[index]['icon']),
-                                    SizedBox(width: 10.px),
-                                    Column(
-                                      crossAxisAlignment:
-                                          CrossAxisAlignment.start,
-                                      children: [
-                                        Text(
-                                          balance[index]['title'],
-                                          style: interBold.copyWith(
-                                            fontSize: 16.sp,
-                                            color: Colors.white,
-                                          ),
-                                        ),
-                                        Row(
-                                          children: [
-                                            Icon(
-                                              Icons.currency_yen_sharp,
-                                              size: 10.px,
-                                              color: const Color(0xffD0AFAF),
-                                            ),
-                                            SizedBox(width: 3.px),
-                                            Text(
-                                              balance[index]['balance'],
-                                              style: interSemiBold.copyWith(
-                                                fontSize: 12.sp,
-                                                color: const Color(0xffD0AFAF),
+
+                          StreamBuilder(
+                            stream: FirebaseFirestore.instance
+                                .collection('user')
+                                .doc(_sharedPrefrences
+                                    .getString(AppConstants.UID))
+                                .collection('transaction')
+                                .where('type', isEqualTo: 'income')
+                                .snapshots(),
+                            builder: (context, snapshot) {
+                              if (snapshot.hasData) {
+                                final _transaction =
+                                    snapshot.data!.docs.toList();
+
+                                for (var element in _transaction) {
+                                  _expanse =
+                                      int.parse(element['balance'].toString());
+                                }
+
+                                return ListView.separated(
+                                  itemCount: _transaction.length,
+                                  physics: const BouncingScrollPhysics(),
+                                  shrinkWrap: true,
+                                  padding: EdgeInsets.only(top: 10.px),
+                                  separatorBuilder: (context, index) =>
+                                      SizedBox(height: 15.px),
+                                  itemBuilder: (context, index) {
+                                    return Container(
+                                      child: Row(
+                                        children: [
+                                          Image.asset(
+                                              _transaction[index]['icon']),
+                                          SizedBox(width: 10.px),
+                                          Column(
+                                            crossAxisAlignment:
+                                                CrossAxisAlignment.start,
+                                            children: [
+                                              Text(
+                                                _transaction[index]['category'],
+                                                style: interBold.copyWith(
+                                                  fontSize: 16.sp,
+                                                  color: Colors.white,
+                                                ),
                                               ),
-                                            ),
-                                          ],
-                                        ),
-                                      ],
-                                    )
-                                  ],
-                                ),
-                              );
+                                              Row(
+                                                children: [
+                                                  Icon(
+                                                    Icons.currency_yen_sharp,
+                                                    size: 10.px,
+                                                    color:
+                                                        const Color(0xffD0AFAF),
+                                                  ),
+                                                  SizedBox(width: 3.px),
+                                                  Text(
+                                                    _transaction[index]
+                                                            ['balance']
+                                                        .toString(),
+                                                    style:
+                                                        interSemiBold.copyWith(
+                                                      fontSize: 12.sp,
+                                                      color: const Color(
+                                                          0xffD0AFAF),
+                                                    ),
+                                                  ),
+                                                ],
+                                              ),
+                                            ],
+                                          )
+                                        ],
+                                      ),
+                                    );
+                                  },
+                                );
+                              }
+
+                              return Container();
                             },
-                          )
+                          ),
                         ],
                       ),
                     )
@@ -471,66 +518,92 @@ class _HomeScreenState extends State<HomeScreen> {
                         color: const Color(0xff414A4C),
                         borderRadius: BorderRadius.circular(10),
                       ),
-                      child: ListView.separated(
-                        itemCount: transaction.length,
-                        physics: const BouncingScrollPhysics(),
-                        shrinkWrap: true,
-                        padding: EdgeInsets.only(top: 10.px),
-                        separatorBuilder: (context, index) =>
-                            SizedBox(height: 15.px),
-                        itemBuilder: (context, index) {
-                          return Container(
-                            child: Row(
-                              children: [
-                                Image.asset(transaction[index]['icon']),
-                                SizedBox(width: 10.px),
-                                Expanded(
-                                  child: Column(
-                                    crossAxisAlignment:
-                                        CrossAxisAlignment.start,
+                      child: StreamBuilder(
+                        stream: FirebaseFirestore.instance
+                            .collection('user')
+                            .doc(_sharedPrefrences.getString(AppConstants.UID))
+                            .collection('transaction')
+                            .where('type', isEqualTo: 'expanse')
+                            .snapshots(),
+                        builder: (context, snapshot) {
+                          if (snapshot.hasData) {
+                            final _transaction = snapshot.data!.docs.toList();
+
+                            for (var element in _transaction) {
+                              _expanse =
+                                  int.parse(element['balance'].toString());
+                            }
+
+                            return ListView.separated(
+                              itemCount: _transaction.length,
+                              physics: const BouncingScrollPhysics(),
+                              shrinkWrap: true,
+                              padding: EdgeInsets.only(top: 10.px),
+                              separatorBuilder: (context, index) =>
+                                  SizedBox(height: 15.px),
+                              itemBuilder: (context, index) {
+                                return Container(
+                                  child: Row(
                                     children: [
-                                      Text(
-                                        transaction[index]['title'],
-                                        style: interBold.copyWith(
-                                          fontSize: 16.sp,
-                                          color: Colors.white,
+                                      Image.asset(_transaction[index]['icon']),
+                                      SizedBox(width: 10.px),
+                                      Expanded(
+                                        child: Column(
+                                          crossAxisAlignment:
+                                              CrossAxisAlignment.start,
+                                          children: [
+                                            Text(
+                                              _transaction[index]['category'],
+                                              style: interBold.copyWith(
+                                                fontSize: 16.sp,
+                                                color: Colors.white,
+                                              ),
+                                            ),
+                                            Text(
+                                              dayAndTimeFormat(
+                                                _transaction[index]['date']
+                                                    .toDate(),
+                                              ),
+                                              style: interBold.copyWith(
+                                                fontSize: 12.sp,
+                                                color: const Color(0xffD0AFAF),
+                                              ),
+                                            ),
+                                          ],
                                         ),
                                       ),
-                                      Text(
-                                        transaction[index]['date'],
-                                        style: interBold.copyWith(
-                                          fontSize: 12.sp,
-                                          color: const Color(0xffD0AFAF),
-                                        ),
+                                      SizedBox(width: 10.px),
+                                      Row(
+                                        mainAxisAlignment:
+                                            MainAxisAlignment.end,
+                                        children: [
+                                          Icon(
+                                            Icons.currency_yen_sharp,
+                                            size: 12.px,
+                                            color: const Color(0xffFA4C4C),
+                                          ),
+                                          SizedBox(width: 3.px),
+                                          Text(
+                                            _transaction[index]['balance']
+                                                .toString(),
+                                            style: interSemiBold.copyWith(
+                                              fontSize: 14.sp,
+                                              color: const Color(0xffFA4C4C),
+                                            ),
+                                          ),
+                                        ],
                                       ),
                                     ],
                                   ),
-                                ),
-                                SizedBox(width: 10.px),
-                                Row(
-                                  mainAxisAlignment: MainAxisAlignment.end,
-                                  children: [
-                                    Icon(
-                                      Icons.currency_yen_sharp,
-                                      size: 12.px,
-                                      color: const Color(0xffFA4C4C),
-                                    ),
-                                    SizedBox(width: 3.px),
-                                    Text(
-                                      transaction[index]['balance'],
-                                      style: interSemiBold.copyWith(
-                                        fontSize: 14.sp,
-                                        color: const Color(0xffFA4C4C),
-                                      ),
-                                    ),
-                                  ],
-                                ),
-                              ],
-                            ),
-                          );
+                                );
+                              },
+                            );
+                          }
+
+                          return Container();
                         },
                       ),
-                    )
+                    ),
                   ],
                 ),
               ),

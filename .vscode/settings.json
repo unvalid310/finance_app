@@ -1,3 +1,4 @@
 {
-    "dart.flutterSdkPath": "~/Flutters/fluttern"
+    "dart.flutterSdkPath": "~/Flutters/fluttern",
+    "java.configuration.updateBuildConfiguration": "automatic"
 }
